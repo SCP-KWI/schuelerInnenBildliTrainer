@@ -97,6 +97,7 @@ const isWhiteImage = (imageData) => {
 
 const extractNames = (textContent) => {
   const names = [];
+  let currentName = [];
   let startExtracting = false;
   textContent.items.forEach((item) => {
     const text = item.str.trim();
@@ -105,8 +106,15 @@ const extractNames = (textContent) => {
       return;
     }
     if (startExtracting && text) {
-      names.push(text);
+      if (text.match(/^[A-Z]/) && currentName.length > 0) {
+        names.push(currentName.join(" "));
+        currentName = [];
+      }
+      currentName.push(text);
     }
   });
+  if (currentName.length > 0) {
+    names.push(currentName.join(" "));
+  }
   return names;
 };

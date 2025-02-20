@@ -20,6 +20,7 @@ window.showTrainClassScreen = function () {
 };
 
 window.startQuiz = function () {
+  document.getElementById("scan-class-screen").classList.add("d-none");
   document.getElementById("train-class-screen").classList.add("d-none");
   document.getElementById("quiz-screen").classList.remove("d-none");
   loadRandomImage();
@@ -45,12 +46,14 @@ window.checkAnswer = function () {
     messageElement.textContent = "Korrekt!";
     messageElement.className = "text-success";
     score++;
+    markStudentAsCorrect(currentImageName);
   } else if (distance === 1) {
     const highlightedName = highlightMistakes(input, correctName);
     messageElement.textContent = "Fast";
     messageElement.className = "text-warning";
     correctNameElement.innerHTML = `Correct name: ${highlightedName}`;
     score += 0.5;
+    markStudentAsCorrect(currentImageName);
   } else {
     const highlightedName = highlightMistakes(input, correctName);
     messageElement.textContent = "Falsch";
@@ -61,38 +64,53 @@ window.checkAnswer = function () {
   scoreElement.textContent = `Score: ${score}`;
   nextButton.classList.remove("d-none");
   okButton.classList.add("d-none");
+  nextButton.focus();
 };
 
 window.handleKeyPress = function (event) {
   if (event.key === "Enter") {
-    checkAnswer();
+    const okButton = document.getElementById("ok-button");
+    const nextButton = document.getElementById("next-button");
+    if (!okButton.classList.contains("d-none")) {
+      checkAnswer();
+    } else if (!nextButton.classList.contains("d-none")) {
+      loadRandomImage();
+    }
   }
 };
 
 let images = [];
 let currentImageName = "";
 let score = 0;
+let remainingStudents = [];
+let lastShownStudent = null;
 
 window.processPDF = async function () {
   const fileInput = document.getElementById("pdf-file");
   if (fileInput.files.length === 0) {
-    alert("Please select a PDF file.");
+    alert("Bitte wähle ein PDF aus.");
     return;
   }
   const pdfFile = fileInput.files[0];
   await processPDF(pdfFile);
-  alert("PDF processing complete. Starting the quiz now.");
+  alert("PDF fertig eingelesen. Quiz startet jetzt.");
   startQuiz(); // Start the quiz immediately after processing the PDF
 };
 
 window.loadRandomImage = function () {
-  if (images.length === 0) {
-    alert("No images available. Please scan a class first.");
+  if (remainingStudents.length === 0) {
+    showCongratulatoryMessage();
     return;
   }
 
-  const randomIndex = Math.floor(Math.random() * images.length);
-  const image = images[randomIndex];
+  let randomIndex;
+  let image;
+  do {
+    randomIndex = Math.floor(Math.random() * remainingStudents.length);
+    image = remainingStudents[randomIndex];
+  } while (image === lastShownStudent && remainingStudents.length > 1);
+
+  lastShownStudent = image;
   currentImageName = image.name;
 
   const imageContainer = document.getElementById("quiz-image-container");
@@ -108,6 +126,38 @@ window.loadRandomImage = function () {
   document.getElementById("correct-name").textContent = "";
   document.getElementById("next-button").classList.add("d-none");
   document.getElementById("ok-button").classList.remove("d-none");
+  document.getElementById("quiz-input").focus();
+};
+
+function markStudentAsCorrect(name) {
+  remainingStudents = remainingStudents.filter(
+    (student) => student.name !== name
+  );
+}
+
+function showCongratulatoryMessage() {
+  const quizScreen = document.getElementById("quiz-screen");
+  quizScreen.innerHTML = `
+        <h2>Das waren alle, toll gemacht!</h2>
+        <img src="https://media.tenor.co/images/2a8c16ba3bac31f0e39648de78e14406/raw" alt="Congratulations" class="congrats-gif">
+        <button class="btn btn-primary" onclick="restartQuiz()">Nochmal?</button>
+    `;
+}
+
+window.restartQuiz = function () {
+  remainingStudents = [...images];
+  const quizScreen = document.getElementById("quiz-screen");
+  quizScreen.innerHTML = `
+        <h2>Quiz</h2>
+        <div id="quiz-image-container"></div>
+        <input type="text" id="quiz-input" class="form-control my-2" placeholder="Enter first name" onkeypress="handleKeyPress(event)">
+        <button class="btn btn-primary" id="ok-button" onclick="checkAnswer()">Ok</button>
+        <p id="quiz-message"></p>
+        <p id="correct-name"></p>
+        <button class="btn btn-secondary d-none" id="next-button" onclick="loadRandomImage()">Weiter</button>
+        <p id="score" class="text-right"></p>
+    `;
+  startQuiz();
 };
 
 function isCorrectAnswer(input, correctName) {
@@ -168,5 +218,7 @@ function levenshteinDistance(a, b) {
 }
 
 export function addImageToQuiz(imageDataUrl, fileName) {
-  images.push({ src: imageDataUrl, name: fileName });
+  const student = { src: imageDataUrl, name: fileName };
+  images.push(student);
+  remainingStudents.push(student);
 }

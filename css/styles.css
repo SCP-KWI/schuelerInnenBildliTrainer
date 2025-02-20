@@ -33,3 +33,9 @@
 .text-right {
   text-align: right;
 }
+
+.congrats-gif {
+  max-width: 100%;
+  height: auto;
+  margin: 20px 0;
+}
