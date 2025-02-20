@@ -33,6 +33,7 @@ export const processPDF = async (pdfFile) => {
     console.log(`Page ${i} rendered as image`);
 
     const textContent = await page.getTextContent();
+
     const names = extractNames(textContent);
 
     let stopProcessing = false;
@@ -100,17 +101,28 @@ const extractNames = (textContent) => {
   let currentName = [];
   let startExtracting = false;
   textContent.items.forEach((item) => {
+    console.log(item);
     const text = item.str.trim();
     if (text === "Telefon") {
       startExtracting = true;
       return;
     }
     if (startExtracting && text) {
-      if (text.match(/^[A-Z]/) && currentName.length > 0) {
-        names.push(currentName.join(" "));
-        currentName = [];
+      if (text.includes(" ")) {
+        if (currentName.length > 0) {
+          names.push(currentName);
+          currentName = [];
+        }
+        currentName.push(text);
+      } else {
+        if (currentName.length > 0) {
+          currentName.push(text);
+          names.push(currentName.join(" "));
+          currentName = [];
+        } else {
+          names.push(text);
+        }
       }
-      currentName.push(text);
     }
   });
   if (currentName.length > 0) {

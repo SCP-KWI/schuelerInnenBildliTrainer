@@ -5,7 +5,4 @@ export const saveImage = (imageDataUrl, fileName) => {
 
   // Add image to quiz
   addImageToQuiz(imageDataUrl, fileName);
-
-  // Provide feedback to the user
-  console.log(`Image saved: ${fileName}`);
 };
